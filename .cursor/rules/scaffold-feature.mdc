@@ -1,0 +1,6 @@
+---
+description: When adding a feature or endpoint set, follow the scaffold-feature skill.
+alwaysApply: false
+---
+
+Follow the `scaffold-feature` skill. Copy `internal/user`, then edit the spec, SQL, feature package, and `internal/app` in that order.

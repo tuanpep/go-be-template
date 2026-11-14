@@ -1,0 +1,11 @@
+---
+description: When editing sentinels, handler error branches, or logging, follow the map-errors skill.
+globs:
+  - "internal/**/errors.go"
+  - "internal/**/handler.go"
+  - "internal/platform/log/**/*.go"
+  - "internal/platform/httpx/**/*.go"
+alwaysApply: false
+---
+
+Follow the `map-errors` skill. Compare sentinels with `errors.Is` and write Problem JSON through `httpx`.

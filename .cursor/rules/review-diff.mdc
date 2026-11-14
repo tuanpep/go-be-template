@@ -1,0 +1,6 @@
+---
+description: When the user asks for a code review, PR review, or audit, follow the review-diff skill.
+alwaysApply: false
+---
+
+Follow the `review-diff` skill. When the diff touches the spec or SQL, run `make generate` and `git diff --exit-code internal/store/db internal/transport/openapi`.

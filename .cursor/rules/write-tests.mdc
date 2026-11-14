@@ -1,0 +1,11 @@
+---
+description: When adding tests or editing CI, follow the write-tests skill.
+globs:
+  - "**/*_test.go"
+  - "integration/**"
+  - ".github/**"
+  - ".golangci.yml"
+alwaysApply: false
+---
+
+Follow the `write-tests` skill. Run `go test` for the packages you changed.

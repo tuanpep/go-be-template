@@ -66,10 +66,10 @@ Migrations are **not** applied automatically when the API starts (matches k8s Jo
 2. Add `internal/<feature>/` with `repository.go`, `service.go`, `handler.go`
 3. Wire in `internal/app/app.go` and delegate from `internal/transport/api.go`
 
-See `.cursor/skills/go-be-template/examples.md` for the full walkthrough.
+The walkthrough is the **scaffold-feature** skill in `.cursor/skills/scaffold-feature/SKILL.md`.
 
 ## AI agents
 
-- Start: `AGENTS.md`, then skill **go-be-template**
-- Validate: `.cursor/skills/go-be-template/scripts/validate.sh`
-- One layer: `scripts/verify-*.sh` in that same folder
+- Start: `AGENTS.md`
+- New feature: skill **scaffold-feature**
+- After a spec or SQL change: `make generate`, then `git diff --exit-code internal/store/db internal/transport/openapi`

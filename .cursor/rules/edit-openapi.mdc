@@ -1,0 +1,11 @@
+---
+description: When editing the OpenAPI spec or transport, follow the edit-openapi skill and regenerate.
+globs:
+  - "api/**"
+  - "internal/transport/**/*.go"
+alwaysApply: false
+---
+
+Follow the `edit-openapi` skill. Change `api/openapi.yaml` before generated transport code.
+
+Leave `internal/transport/openapi/api.gen.go` untouched. Regenerate with `make generate`, then `git diff --exit-code internal/transport/openapi`.

@@ -1,25 +1,21 @@
 # Agent guide
 
-Skills live in `.cursor/skills/`. Read **go-be-template** first. It routes to one doc and one verify script. Layer skills are thin procedures with `paths`, so they surface only for matching files.
+Each skill is `.cursor/skills/<name>/SKILL.md`. The rule with the same name attaches on the same files and points at that skill.
 
-| Skill | When |
-|-------|------|
-| **go-be-template** | Any change in this repository |
-| go-be-template-structure | Packages, imports, new feature folders |
-| go-be-template-openapi | `api/openapi.yaml`, codegen, routes |
-| go-be-template-data | Migrations, sqlc, repositories |
-| go-be-template-http | Chi, middleware, handlers, httpx |
-| go-be-template-wiring | `internal/app`, `cmd/api`, `cmd/migrate` |
-| go-be-template-errors | Sentinels, slog, Problem responses |
-| go-be-template-testing | Tests, CI, golangci |
-| go-be-template-operations | Docker, env, health, migrate job |
-| go-be-template-security | Secrets, SQL safety, public routes |
-| go-be-template-review | Code review, PR review, audit |
+| Skill and rule | Action |
+|----------------|--------|
+| **scaffold-feature** | Add a feature or endpoint set |
+| place-packages | Create a package, move files, or fix an import cycle |
+| edit-openapi | Edit `api/openapi.yaml`, codegen, or routes |
+| add-persistence | Add a migration, sqlc query, or repository |
+| write-http | Edit Chi, middleware, handlers, or httpx |
+| wire-app | Edit `internal/app`, `cmd/api`, or `cmd/migrate` |
+| map-errors | Edit sentinels, slog, or Problem responses |
+| write-tests | Add tests, CI, or golangci config |
+| configure-runtime | Edit Docker, env, health, or the migrate job |
+| guard-security | Touch secrets, SQL safety, or public routes |
+| review-diff | Review a diff, pull request, or audit |
 
-**Before done:** `.cursor/skills/go-be-template/scripts/validate.sh`
+`scaffold-feature` and `review-diff` apply when the request matches. The other rules apply when their globs match.
 
-**One layer:** `.cursor/skills/go-be-template/scripts/verify-<section>.sh`
-
-**New feature:** `.cursor/skills/go-be-template/examples.md`
-
-Cursor attaches `.cursor/rules/go-be-template.mdc` when Go, SQL, OpenAPI, or deploy files are in context.
+After a spec or SQL change: `make generate`, then `git diff --exit-code internal/store/db internal/transport/openapi`. Run `go test` for the packages you changed.
