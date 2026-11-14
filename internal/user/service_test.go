@@ -18,20 +18,20 @@ func (s *stubRepo) List(context.Context, int32, int32) ([]User, int64, error) {
 	return nil, 0, nil
 }
 
-func (s *stubRepo) Create(_ context.Context, email, name string) (User, error) {
-	s.email = email
-	s.name = name
-	return User{ID: "id", Email: email, Name: name}, nil
+func (s *stubRepo) Create(_ context.Context, in CreateInput) (User, error) {
+	s.email = in.Email
+	s.name = in.Name
+	return User{Email: in.Email, Name: in.Name}, nil
 }
 
-func (s *stubRepo) Update(_ context.Context, _ uuid.UUID, email, name *string) (User, error) {
-	if email != nil {
-		s.email = *email
+func (s *stubRepo) Update(_ context.Context, _ uuid.UUID, in UpdateInput) (User, error) {
+	if in.Email != nil {
+		s.email = *in.Email
 	}
-	if name != nil {
-		s.name = *name
+	if in.Name != nil {
+		s.name = *in.Name
 	}
-	return User{ID: "id", Email: s.email, Name: s.name}, nil
+	return User{Email: s.email, Name: s.name}, nil
 }
 
 func (s *stubRepo) Delete(context.Context, uuid.UUID) error { return nil }
@@ -40,7 +40,7 @@ func TestService_Create_NormalizesInput(t *testing.T) {
 	t.Parallel()
 	repo := &stubRepo{}
 	svc := NewService(repo)
-	_, err := svc.Create(context.Background(), "  Alice@Example.COM ", "  Bob  ")
+	_, err := svc.Create(context.Background(), CreateInput{Email: "  Alice@Example.COM ", Name: "  Bob  "})
 	if err != nil {
 		t.Fatalf("create: %v", err)
 	}
@@ -57,7 +57,7 @@ func TestService_Update_NormalizesEmail(t *testing.T) {
 	repo := &stubRepo{}
 	svc := NewService(repo)
 	email := "  Ada@Example.COM "
-	_, err := svc.Update(context.Background(), uuid.New(), &email, nil)
+	_, err := svc.Update(context.Background(), uuid.New(), UpdateInput{Email: &email})
 	if err != nil {
 		t.Fatalf("update: %v", err)
 	}
@@ -68,7 +68,7 @@ func TestService_Update_NormalizesEmail(t *testing.T) {
 
 func TestService_Update_RequiresAField(t *testing.T) {
 	t.Parallel()
-	_, err := NewService(&stubRepo{}).Update(context.Background(), uuid.New(), nil, nil)
+	_, err := NewService(&stubRepo{}).Update(context.Background(), uuid.New(), UpdateInput{})
 	if !errors.Is(err, ErrInvalidInput) {
 		t.Fatalf("expected ErrInvalidInput, got %v", err)
 	}
@@ -77,7 +77,7 @@ func TestService_Update_RequiresAField(t *testing.T) {
 func TestService_Create_InvalidInput(t *testing.T) {
 	t.Parallel()
 	svc := NewService(&stubRepo{})
-	_, err := svc.Create(context.Background(), "   ", "x")
+	_, err := svc.Create(context.Background(), CreateInput{Email: "   ", Name: "x"})
 	if !errors.Is(err, ErrInvalidInput) {
 		t.Fatalf("expected ErrInvalidInput, got %v", err)
 	}

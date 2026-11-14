@@ -1,19 +1,22 @@
 ---
 name: edit-openapi
-description: Edits HTTP routes contract-first with OpenAPI and oapi-codegen. Use when editing api/openapi.yaml, adding a route, changing a Problem response, or regenerating transport code.
+description: >-
+  Edits contract-first OpenAPI and oapi-codegen output for this template. Use
+  when changing api/openapi.yaml, generated transport types, routes, or
+  operationId wiring.
 paths:
   - "api/**"
   - "internal/transport/**/*.go"
 ---
 
-# Edit the OpenAPI contract
+# Edit OpenAPI
 
-`api/openapi.yaml` is the route inventory. Generated code is `internal/transport/openapi/api.gen.go`.
+## Instructions
 
-1. Edit the spec first: path, `operationId`, parameters, schemas, and `Problem` responses.
-2. Run `make generate`.
-3. Implement `transport.API` and the feature handler.
+1. Edit `api/openapi.yaml` (path, `operationId`, schemas, Problem responses).
+2. `make generate`.
+3. Delegate in `internal/transport/api.go`; implement in feature `handler`.
 
-A handler bug needs no spec edit when the contract is unchanged. A new query parameter goes in the spec before the handler. Pagination reuses `Page` (1–1000000) and `PageSize` (1–100). UUID path params use `format: uuid` and the codegen name (`userId`). Request bodies set `additionalProperties: false` and `validate` tags in `x-oapi-codegen-extra-tags`. A breaking change is a new `/v2` path, after the user agrees.
+Bodies: `additionalProperties: false`, `x-oapi-codegen-extra-tags` `validate`. Pagination: `Page` 1–1000000, `PageSize` 1–100. UUID params: `format: uuid`. Breaking changes → new `/v2` after user agrees.
 
-Register routes with `openapi.HandlerWithOptions` and an `ErrorHandlerFunc` that writes Problem JSON through `httpx`. After a spec edit, `git diff --exit-code internal/transport/openapi` should be empty.
+Router uses `openapi.HandlerWithOptions` + `ErrorHandlerFunc` → `httpx` Problem JSON.

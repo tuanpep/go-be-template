@@ -1,6 +1,9 @@
 ---
 name: add-persistence
-description: Adds goose migrations, sqlc queries, and pgx repositories. Use when writing migrations, sql/schema, sql/queries, sqlc.yaml, or repository code.
+description: >-
+  Adds goose migrations, sqlc queries, and pgx repositories per this template.
+  Use when editing migrations/, sql/, sqlc.yaml, internal/store, or feature
+  repository.go.
 paths:
   - "migrations/**"
   - "sql/**"
@@ -11,14 +14,13 @@ paths:
 
 # Add persistence
 
-pgx pool lives in `internal/platform/postgres` (MaxConns 20, MinConns 2, no startup ping). goose uses `migrations/` and `migrations/embed.go`. sqlc reads `sql/schema` and `sql/queries` and writes `internal/store/db`.
+Pool: `internal/platform/postgres`. Migrations: `migrations/`. sqlc: `sql/schema` + `sql/queries` → `internal/store/db`.
 
-1. Add `migrations/NNNNN_description.sql` with goose Up and Down. One logical change per file.
-2. Mirror tables and list indexes in `sql/schema/schema.sql`.
-3. Add `sql/queries/<feature>.sql`.
-4. Run `make generate`.
-5. Map `db` rows to domain types in the repository. Apply with `make migrate`.
+## Instructions
 
-`pgx.ErrNoRows` becomes `ErrNotFound`. SQLSTATE `23505` on constraint `users_email_key` becomes `ErrDuplicateEmail`. Any other unique violation is wrapped and returned. Lists use `ORDER BY created_at DESC, id DESC`, `LIMIT`/`OFFSET`, and a count query inside one read-only transaction. A `UNIQUE` column is already indexed. Add an index for the list order. A multi-step write is a transaction inside the repository. Services do not import `pgx` or `internal/store/db`.
+1. `migrations/NNNNN_*.sql` (Up/Down) — one change per file.
+2. Mirror schema/indexes in `sql/schema/schema.sql`.
+3. `sql/queries/<feature>.sql` → `make generate`.
+4. `Repository` interface in `service.go`; `SQLRepository` maps rows in `repository.go`.
 
-After a SQL edit, `git diff --exit-code internal/store/db` should be empty.
+`pgx.ErrNoRows` → `ErrNotFound`. Unique `23505` → conflict sentinel. List + count in one read-only tx. Multi-step write → tx in repository. Services: no `pgx`/`store/db`.

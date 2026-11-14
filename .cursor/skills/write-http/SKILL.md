@@ -1,6 +1,9 @@
 ---
 name: write-http
-description: Writes Chi middleware, routing, and httpx responses. Use when editing the router, platform/httpx, health routes, timeouts, or an HTTP handler.
+description: >-
+  Implements Chi routing, httpx Problem responses, and feature HTTP handlers in
+  this template. Use when editing internal/http, internal/transport/api.go,
+  platform/httpx, or feature handler.go.
 paths:
   - "internal/http/**/*.go"
   - "internal/platform/httpx/**/*.go"
@@ -8,24 +11,16 @@ paths:
   - "internal/**/handler.go"
 ---
 
-# Write HTTP handlers
+# Write HTTP
 
-Client → chi → OpenAPI wrapper → `transport.API` → feature handler → `httpx`.
+Chain: Chi → OpenAPI wrapper → `transport.API` → feature handler → `httpx`.
 
-Middleware order in `internal/http/router.go`: RequestID, Recoverer, request log, Timeout (55s), body limit (1 MiB). Leave Chi `RealIP` off until a trusted-proxy allowlist exists.
+## Instructions
 
-Parameter errors use `openapi.HandlerWithOptions` and an `ErrorHandlerFunc` that writes Problem JSON through `httpx.BadRequest`.
+`internal/http/router.go`: RequestID, Recoverer, log, Timeout 55s, body 1 MiB. No `RealIP` without trusted proxy allowlist.
 
-| Timeout | Value |
-|---------|-------|
-| ReadHeaderTimeout | 5s |
-| ReadTimeout | 15s |
-| WriteTimeout | 60s |
-| IdleTimeout | 60s |
-| Chi request timeout | 55s |
+Server timeouts (`internal/http/timeouts.go`): ReadHeader 5s, Read 15s, Write 60s, Idle 60s; Write > Chi timeout.
 
-Write timeout stays above the Chi deadline.
+Handlers: `Service` interface; `DisallowUnknownFields`; validate tags; `r.Context()` into service; one sentinel mapper (**map-errors**); log with `request_id`; internal → `httpx.InternalError`.
 
-Handlers decode with `DisallowUnknownFields`, validate the generated `validate` tags, call the service with `r.Context()`, and map sentinels to `httpx`. `httpx.ParsePage` rejects an out-of-range page. Log unexpected errors with `request_id` from `chimw.GetReqID`, then `httpx.InternalError`.
-
-`GET /healthz` means the process is listening and does not touch the database. `GET /readyz` calls `health.Checker.Ping` and returns 503 when the database is down or the process is shutting down.
+`/healthz` and `/readyz` are OpenAPI routes (not feature handlers). Probe meaning and deploy order: **configure-runtime**.

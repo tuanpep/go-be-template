@@ -2,75 +2,77 @@ package user
 
 import (
 	"context"
-	"fmt"
 	"strings"
 
 	"github.com/google/uuid"
 )
 
-// Service implements user use cases.
-type Service struct {
+// Service is the feature's public use-case surface.
+// Callers depend on this interface. The implementation stays in this package.
+type Service interface {
+	Get(ctx context.Context, id uuid.UUID) (User, error)
+	List(ctx context.Context, limit, offset int32) ([]User, int64, error)
+	Create(ctx context.Context, in CreateInput) (User, error)
+	Update(ctx context.Context, id uuid.UUID, in UpdateInput) (User, error)
+	Delete(ctx context.Context, id uuid.UUID) error
+}
+
+// Repository is the persistence port consumed by the service.
+type Repository interface {
+	Get(ctx context.Context, id uuid.UUID) (User, error)
+	List(ctx context.Context, limit, offset int32) ([]User, int64, error)
+	Create(ctx context.Context, in CreateInput) (User, error)
+	Update(ctx context.Context, id uuid.UUID, in UpdateInput) (User, error)
+	Delete(ctx context.Context, id uuid.UUID) error
+}
+
+type service struct {
 	repo Repository
 }
 
-func NewService(repo Repository) *Service {
-	return &Service{repo: repo}
+// NewService returns the user use cases.
+func NewService(repo Repository) Service {
+	return &service{repo: repo}
 }
 
-func (s *Service) Get(ctx context.Context, id uuid.UUID) (User, error) {
-	u, err := s.repo.Get(ctx, id)
-	if err != nil {
-		return User{}, err
-	}
-	return u, nil
+func (s *service) Get(ctx context.Context, id uuid.UUID) (User, error) {
+	return s.repo.Get(ctx, id)
 }
 
-func (s *Service) List(ctx context.Context, limit, offset int32) ([]User, int64, error) {
-	users, total, err := s.repo.List(ctx, limit, offset)
-	if err != nil {
-		return nil, 0, fmt.Errorf("list: %w", err)
-	}
-	return users, total, nil
+func (s *service) List(ctx context.Context, limit, offset int32) ([]User, int64, error) {
+	return s.repo.List(ctx, limit, offset)
 }
 
-func (s *Service) Update(ctx context.Context, id uuid.UUID, email, name *string) (User, error) {
-	if email == nil && name == nil {
+func (s *service) Update(ctx context.Context, id uuid.UUID, in UpdateInput) (User, error) {
+	if in.Email == nil && in.Name == nil {
 		return User{}, ErrInvalidInput
 	}
-	if email != nil {
-		v := strings.ToLower(strings.TrimSpace(*email))
+	if in.Email != nil {
+		v := strings.ToLower(strings.TrimSpace(*in.Email))
 		if v == "" {
 			return User{}, ErrInvalidInput
 		}
-		email = &v
+		in.Email = &v
 	}
-	if name != nil {
-		v := strings.TrimSpace(*name)
+	if in.Name != nil {
+		v := strings.TrimSpace(*in.Name)
 		if v == "" {
 			return User{}, ErrInvalidInput
 		}
-		name = &v
+		in.Name = &v
 	}
-	u, err := s.repo.Update(ctx, id, email, name)
-	if err != nil {
-		return User{}, err
-	}
-	return u, nil
+	return s.repo.Update(ctx, id, in)
 }
 
-func (s *Service) Delete(ctx context.Context, id uuid.UUID) error {
+func (s *service) Delete(ctx context.Context, id uuid.UUID) error {
 	return s.repo.Delete(ctx, id)
 }
 
-func (s *Service) Create(ctx context.Context, email, name string) (User, error) {
-	email = strings.ToLower(strings.TrimSpace(email))
-	name = strings.TrimSpace(name)
-	if email == "" || name == "" {
+func (s *service) Create(ctx context.Context, in CreateInput) (User, error) {
+	in.Email = strings.ToLower(strings.TrimSpace(in.Email))
+	in.Name = strings.TrimSpace(in.Name)
+	if in.Email == "" || in.Name == "" {
 		return User{}, ErrInvalidInput
 	}
-	u, err := s.repo.Create(ctx, email, name)
-	if err != nil {
-		return User{}, err
-	}
-	return u, nil
+	return s.repo.Create(ctx, in)
 }

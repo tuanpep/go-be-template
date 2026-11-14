@@ -1,22 +1,28 @@
 ---
 name: guard-security
-description: Guards secrets, sqlc-only SQL, and public routes. Use when adding auth, env secrets, raw SQL, outbound HTTP, or PII fields.
+description: >-
+  Applies secrets hygiene, sqlc-only SQL, and public-route conventions for this
+  template. Use when adding auth, editing repositories, HTTP middleware,
+  OpenAPI, or .env.example.
 paths:
   - "api/openapi.yaml"
   - ".env.example"
-  - "internal/config/**/*.go"
-  - "internal/http/**/*.go"
+  - "internal/config/**"
+  - "internal/http/**"
   - "internal/**/repository.go"
 ---
 
 # Guard security
 
-This template has no authentication. The `/v1/users` routes are public samples. Say that when adding a public route.
+No auth in template; `/v1/users` is a public sample.
 
-SQL is sqlc placeholders. A dynamic `ORDER BY` uses a column allowlist in the repository. `DATABASE_URL` is env-only and required. Leave it out of logs, OpenAPI examples, and Problem `detail`. Validate bodies with the generated `validate` tags and reject unknown JSON fields.
+## Instructions
 
-CORS is off. A browser client needs an allowlist. Rate limiting is outside the process. Add it at the proxy, or as Chi middleware in `internal/http`, before exposing the sample on the internet. An outbound call to a user-supplied URL needs an allowlist.
+- No `DATABASE_URL` or secrets in logs or Problem bodies.
+- CORS off; rate limit at proxy or Chi if public. User-supplied outbound URLs → allowlist.
 
-When auth is requested, parse JWT and store claims in `internal/platform/auth`, enforce them in `internal/http` middleware, and read the user id from context in the handler. Leave JWTs out of sqlc models. Hash passwords with `golang.org/x/crypto` and compare secrets in constant time.
+**add-persistence** / repositories: sqlc-only SQL; dynamic `ORDER BY` → allowlist.
 
-Flag for review: authz, uploads, raw SQL, user-controlled URLs, and PII in logs.
+**write-http** / handlers: reject unknown JSON fields (`DisallowUnknownFields`).
+
+Auth (when asked): new `internal/platform/auth`, middleware in `http`, claims on `context`; hash secrets with `x/crypto`, constant-time compare.

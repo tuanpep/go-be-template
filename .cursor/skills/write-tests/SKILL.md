@@ -1,23 +1,23 @@
 ---
 name: write-tests
-description: Writes unit tests, integration tests, and CI checks. Use when adding tests or editing .github/workflows, .golangci.yml, or Makefile test targets.
+description: >-
+  Covers unit tests, integration tests, and CI checks for this Go backend
+  template. Use when adding *_test.go files, integration/ tests, or .github
+  workflows.
 paths:
   - "**/*_test.go"
   - "integration/**"
   - ".github/**"
-  - ".golangci.yml"
 ---
 
 # Write tests
 
-| Test | Where | Rule |
-|------|-------|------|
-| Unit | Next to the package | Fake `Repository`. `t.Parallel()` is fine. |
-| Integration | `integration/` | Skip when `DATABASE_URL` is unset. |
-| Generated | — | Leave generated packages untested. |
+## Instructions
 
-Integration setup is `postgres.NewPool`, `migrate.Up`, `app.HandlerForTest`, and `httptest`. Close pools with `defer`. Use `uuid.NewString()` in emails and ids. `t.Name()` stays the same across runs and collides on a shared database.
+| Kind | Rule |
+|------|------|
+| Unit | Fake `Repository`; `t.Parallel()` ok |
+| Integration | `integration/`; skip without `DATABASE_URL`; `HandlerForTest` + migrate; unique fields via `uuid.NewString()` |
+| Generated | Do not test sqlc/openapi packages |
 
-CI order: setup-go from `go.mod` with `check-latest: true`, `go tool` sqlc and oapi-codegen then `git diff --exit-code` on the generated trees, golangci-lint v2.9.0, `go tool govulncheck ./...`, `go test -race ./...`, then build `cmd/api` and `cmd/migrate`. Tool versions are the `tool` directives in `go.mod`. After a spec or SQL edit, run `make generate` before tests.
-
-Run `go test` for the packages you changed.
+CI: generate check, golangci-lint v2.9.0, govulncheck, `go test -race ./...`, build `cmd/api` and `cmd/migrate`.

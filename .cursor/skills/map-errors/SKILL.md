@@ -1,28 +1,24 @@
 ---
 name: map-errors
-description: Maps sentinel errors to slog and Problem responses. Use when editing errors.go, handler error branches, or platform/log.
+description: >-
+  Maps feature sentinel errors to slog and RFC 7807 Problem JSON via httpx.
+  Use when editing internal/**/errors.go, handlers, or internal/platform/httpx.
 paths:
   - "internal/**/errors.go"
   - "internal/**/handler.go"
-  - "internal/platform/log/**/*.go"
   - "internal/platform/httpx/**/*.go"
 ---
 
 # Map errors
 
-Sentinels live in the feature `errors.go`. Compare them with `errors.Is`.
+Sentinels in feature `errors.go`; use `errors.Is`.
 
-| Layer | Style |
-|-------|-------|
-| Repository | Map driver codes to sentinels. Wrap other I/O with `%w`. |
-| Service | Return sentinels. Wrap with `%w` only when `errors.Is` still works. |
-| Handler | `errors.Is` → `httpx` status. |
+## Instructions
 
-| Outcome | Response |
-|---------|----------|
-| Not found | `httpx.NotFound` |
-| Conflict | `httpx.Conflict` |
-| Bad input | `httpx.BadRequest` with `httpx.ValidationDetail` |
-| Unexpected | Log, then `httpx.InternalError` with no driver text |
+| Layer | Rule |
+|-------|------|
+| Repository | Driver → sentinel; else `%w` |
+| Service | Return sentinels |
+| Handler | One helper mapping to `httpx.NotFound` / `Conflict` / `BadRequest` / log + `InternalError` |
 
-Error logs include `request_id` from `chimw.GetReqID`. Leave passwords, tokens, and credential URLs out of logs. Pass `r.Context()` into the service and the repository. Chi `Recoverer` handles handler panics.
+No credentials in logs. `r.Context()` through service and repository.

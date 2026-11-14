@@ -16,11 +16,11 @@ import (
 // Handler serves user-related HTTP operations.
 type Handler struct {
 	log      *slog.Logger
-	svc      *Service
+	svc      Service
 	validate *validator.Validate
 }
 
-func NewHandler(log *slog.Logger, svc *Service) *Handler {
+func NewHandler(log *slog.Logger, svc Service) *Handler {
 	return &Handler{
 		log:      log,
 		svc:      svc,
@@ -50,12 +50,7 @@ func (h *Handler) ListUsers(w http.ResponseWriter, r *http.Request, params opena
 
 	items := make([]openapi.User, 0, len(rows))
 	for _, row := range rows {
-		u, err := ToAPI(row)
-		if err != nil {
-			h.internal(w, r, "map user", err)
-			return
-		}
-		items = append(items, u)
+		items = append(items, ToAPI(row))
 	}
 
 	httpx.WriteJSON(w, http.StatusOK, openapi.UserListResponse{
@@ -79,26 +74,15 @@ func (h *Handler) CreateUser(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	created, err := h.svc.Create(r.Context(), string(body.Email), body.Name)
+	created, err := h.svc.Create(r.Context(), CreateInput{
+		Email: string(body.Email),
+		Name:  body.Name,
+	})
 	if err != nil {
-		if errors.Is(err, ErrInvalidInput) {
-			httpx.BadRequest(w, "invalid user input")
-			return
-		}
-		if errors.Is(err, ErrDuplicateEmail) {
-			httpx.Conflict(w, "email already registered")
-			return
-		}
-		h.internal(w, r, "create user", err)
+		h.writeUseCaseError(w, r, "create user", err)
 		return
 	}
-
-	resp, err := ToAPI(created)
-	if err != nil {
-		h.internal(w, r, "map user", err)
-		return
-	}
-	httpx.WriteJSON(w, http.StatusCreated, resp)
+	httpx.WriteJSON(w, http.StatusCreated, ToAPI(created))
 }
 
 func (h *Handler) UpdateUser(w http.ResponseWriter, r *http.Request, userID openapi.UserId) {
@@ -120,35 +104,17 @@ func (h *Handler) UpdateUser(w http.ResponseWriter, r *http.Request, userID open
 		return
 	}
 
-	var email *string
+	in := UpdateInput{Name: body.Name}
 	if body.Email != nil {
 		v := string(*body.Email)
-		email = &v
+		in.Email = &v
 	}
-	updated, err := h.svc.Update(r.Context(), id, email, body.Name)
+	updated, err := h.svc.Update(r.Context(), id, in)
 	if err != nil {
-		if errors.Is(err, ErrInvalidInput) {
-			httpx.BadRequest(w, "invalid user input")
-			return
-		}
-		if errors.Is(err, ErrNotFound) {
-			httpx.NotFound(w, "user not found")
-			return
-		}
-		if errors.Is(err, ErrDuplicateEmail) {
-			httpx.Conflict(w, "email already registered")
-			return
-		}
-		h.internal(w, r, "update user", err)
+		h.writeUseCaseError(w, r, "update user", err)
 		return
 	}
-
-	resp, err := ToAPI(updated)
-	if err != nil {
-		h.internal(w, r, "map user", err)
-		return
-	}
-	httpx.WriteJSON(w, http.StatusOK, resp)
+	httpx.WriteJSON(w, http.StatusOK, ToAPI(updated))
 }
 
 func (h *Handler) DeleteUser(w http.ResponseWriter, r *http.Request, userID openapi.UserId) {
@@ -158,11 +124,7 @@ func (h *Handler) DeleteUser(w http.ResponseWriter, r *http.Request, userID open
 		return
 	}
 	if err := h.svc.Delete(r.Context(), id); err != nil {
-		if errors.Is(err, ErrNotFound) {
-			httpx.NotFound(w, "user not found")
-			return
-		}
-		h.internal(w, r, "delete user", err)
+		h.writeUseCaseError(w, r, "delete user", err)
 		return
 	}
 	w.WriteHeader(http.StatusNoContent)
@@ -177,20 +139,23 @@ func (h *Handler) GetUser(w http.ResponseWriter, r *http.Request, userID openapi
 
 	found, err := h.svc.Get(r.Context(), id)
 	if err != nil {
-		if errors.Is(err, ErrNotFound) {
-			httpx.NotFound(w, "user not found")
-			return
-		}
-		h.internal(w, r, "get user", err)
+		h.writeUseCaseError(w, r, "get user", err)
 		return
 	}
+	httpx.WriteJSON(w, http.StatusOK, ToAPI(found))
+}
 
-	resp, err := ToAPI(found)
-	if err != nil {
-		h.internal(w, r, "map user", err)
-		return
+func (h *Handler) writeUseCaseError(w http.ResponseWriter, r *http.Request, op string, err error) {
+	switch {
+	case errors.Is(err, ErrInvalidInput):
+		httpx.BadRequest(w, "invalid user input")
+	case errors.Is(err, ErrNotFound):
+		httpx.NotFound(w, "user not found")
+	case errors.Is(err, ErrDuplicateEmail):
+		httpx.Conflict(w, "email already registered")
+	default:
+		h.internal(w, r, op, err)
 	}
-	httpx.WriteJSON(w, http.StatusOK, resp)
 }
 
 func (h *Handler) internal(w http.ResponseWriter, r *http.Request, msg string, err error) {

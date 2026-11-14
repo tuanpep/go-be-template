@@ -26,10 +26,10 @@ func (fakeUsers) Get(context.Context, uuid.UUID) (user.User, error) {
 func (fakeUsers) List(context.Context, int32, int32) ([]user.User, int64, error) {
 	return nil, 0, nil
 }
-func (fakeUsers) Create(context.Context, string, string) (user.User, error) {
+func (fakeUsers) Create(context.Context, user.CreateInput) (user.User, error) {
 	return user.User{}, nil
 }
-func (fakeUsers) Update(context.Context, uuid.UUID, *string, *string) (user.User, error) {
+func (fakeUsers) Update(context.Context, uuid.UUID, user.UpdateInput) (user.User, error) {
 	return user.User{}, nil
 }
 func (fakeUsers) Delete(context.Context, uuid.UUID) error { return nil }

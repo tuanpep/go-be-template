@@ -14,16 +14,7 @@ import (
 	"github.com/tuanbt/go-be-template/internal/store/db"
 )
 
-// Repository persists users (interface at the consumer — the service).
-type Repository interface {
-	Get(ctx context.Context, id uuid.UUID) (User, error)
-	List(ctx context.Context, limit, offset int32) ([]User, int64, error)
-	Create(ctx context.Context, email, name string) (User, error)
-	Update(ctx context.Context, id uuid.UUID, email, name *string) (User, error)
-	Delete(ctx context.Context, id uuid.UUID) error
-}
-
-// SQLRepository implements Repository using sqlc-generated queries.
+// SQLRepository implements Repository with sqlc queries.
 type SQLRepository struct {
 	pool *pgxpool.Pool
 	q    *db.Queries
@@ -78,8 +69,8 @@ func (r *SQLRepository) List(ctx context.Context, limit, offset int32) ([]User, 
 	return out, total, nil
 }
 
-func (r *SQLRepository) Create(ctx context.Context, email, name string) (User, error) {
-	row, err := r.q.CreateUser(ctx, db.CreateUserParams{Email: email, Name: name})
+func (r *SQLRepository) Create(ctx context.Context, in CreateInput) (User, error) {
+	row, err := r.q.CreateUser(ctx, db.CreateUserParams{Email: in.Email, Name: in.Name})
 	if err != nil {
 		if duplicateEmail(err) {
 			return User{}, ErrDuplicateEmail
@@ -89,12 +80,12 @@ func (r *SQLRepository) Create(ctx context.Context, email, name string) (User, e
 	return fromDB(row)
 }
 
-func (r *SQLRepository) Update(ctx context.Context, id uuid.UUID, email, name *string) (User, error) {
+func (r *SQLRepository) Update(ctx context.Context, id uuid.UUID, in UpdateInput) (User, error) {
 	pgID, err := pgUUID(id)
 	if err != nil {
 		return User{}, err
 	}
-	row, err := r.q.UpdateUser(ctx, db.UpdateUserParams{ID: pgID, Email: email, Name: name})
+	row, err := r.q.UpdateUser(ctx, db.UpdateUserParams{ID: pgID, Email: in.Email, Name: in.Name})
 	if err != nil {
 		if errors.Is(err, pgx.ErrNoRows) {
 			return User{}, ErrNotFound
@@ -144,7 +135,7 @@ func fromDB(row db.User) (User, error) {
 		return User{}, fmt.Errorf("user id: %w", err)
 	}
 	return User{
-		ID:        id.String(),
+		ID:        id,
 		Email:     row.Email,
 		Name:      row.Name,
 		CreatedAt: row.CreatedAt.Time,

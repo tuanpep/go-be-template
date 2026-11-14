@@ -1,19 +1,20 @@
 # Agent guide
 
-Skills live in `.cursor/skills/<name>/SKILL.md`. A skill with `paths` applies when those files are in context. `scaffold-feature` and `review-diff` apply when the request matches.
+Skills: `.cursor/skills/<name>/SKILL.md`. Index: [.cursor/skills/README.md](.cursor/skills/README.md).
 
 | Skill | Action |
 |-------|--------|
-| **scaffold-feature** | Add a feature or endpoint set |
-| place-packages | Create a package, move files, or fix an import cycle |
-| edit-openapi | Edit `api/openapi.yaml`, codegen, or routes |
-| add-persistence | Add a migration, sqlc query, or repository |
-| write-http | Edit Chi, middleware, handlers, or httpx |
-| wire-app | Edit `internal/app`, `cmd/api`, or `cmd/migrate` |
-| map-errors | Edit sentinels, slog, or Problem responses |
-| write-tests | Add tests, CI, or golangci config |
-| configure-runtime | Edit Docker, env, health, or the migrate job |
-| guard-security | Touch secrets, SQL safety, or public routes |
-| review-diff | Review a diff, pull request, or audit |
+| **codebase-architecture** | Layout, imports, OSS map (`codebase-architecture/references/oss-repos.md`) |
+| **scaffold-feature** | New feature or endpoint set |
+| **grow-feature** | Scale a feature across the repo |
+| edit-openapi | OpenAPI, codegen, routes |
+| add-persistence | Migrations, sqlc, repository |
+| write-http | Router, httpx, handlers |
+| wire-app | `internal/app`, `cmd/*` |
+| map-errors | Sentinels, Problem responses |
+| write-tests | Tests, CI |
+| configure-runtime | Docker, env, health, migrate |
+| guard-security | Secrets, SQL safety, public routes |
+| **review-diff** | PR or diff review (`/review-diff`) |
 
-After a spec or SQL change: `make generate`, then `git diff --exit-code internal/store/db internal/transport/openapi`. Run `go test` for the packages you changed.
+After spec or SQL change: `make generate`, then `git diff --exit-code internal/store/db internal/transport/openapi`. Run `go test` for changed packages.

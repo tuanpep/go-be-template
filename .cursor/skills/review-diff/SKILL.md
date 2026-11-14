@@ -1,16 +1,33 @@
 ---
 name: review-diff
-description: Reviews pull requests and local diffs against this template's architecture, OpenAPI, sqlc, and CI. Use when the user asks for a code review, PR review, or audit.
+description: >-
+  Reviews diffs against this template's architecture, OpenAPI, sqlc, security,
+  and CI expectations. Use when reviewing pull requests, local diffs, or before
+  merge.
+disable-model-invocation: true
+paths:
+  - "api/**"
+  - "sql/**"
+  - "migrations/**"
+  - ".github/**"
 ---
 
 # Review a diff
 
-| Label | Meaning |
-|-------|---------|
-| Critical | Secrets in the tree, SQL injection, migrate on API boot, broken data integrity |
-| Major | Layer violation, spec drift, wrong HTTP status or error shape, missing integration test for a new API |
-| Minor | Naming, docs, optional simplification |
+Use **codebase-architecture** (imports, do-not list, request flow) and **grow-feature** stage order.
 
-Reject hand-edited `api.gen.go` or `internal/store/db`, SQL or `*db.Queries` in a service or handler, auto-migrate in `cmd/api`, a route missing from OpenAPI, and Problem JSON built outside `httpx`.
+## Instructions
 
-When the diff touches the spec or SQL, run `make generate` and `git diff --exit-code internal/store/db internal/transport/openapi`. Run `go test` for the packages in the diff. CI already runs the race detector, golangci-lint, and govulncheck.
+| Label | Examples |
+|-------|----------|
+| Critical | Secrets committed, SQL injection, migrate in `cmd/api`, broken integrity |
+| Major | Violations of **codebase-architecture** § Do not, spec drift, wrong errors, new API without integration test |
+| Minor | Naming, docs |
+
+Extra reject checks (not spelled out in architecture):
+
+- Hand-edited `internal/store/db` or `api.gen.go`
+- Problem JSON outside `httpx`
+- Cross-feature repository imports
+
+Spec/SQL touched → `make generate` and clean generated diff (`git diff --exit-code internal/store/db internal/transport/openapi`). Run `go test` on affected packages.

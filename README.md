@@ -9,7 +9,7 @@ Production-oriented Go HTTP API template (Chi, sqlc, pgx, OpenAPI).
 | HTTP | Chi on `net/http` |
 | Contract | OpenAPI 3 + oapi-codegen |
 | Database | PostgreSQL, pgx pool, sqlc, goose |
-| Structure | `internal/app` composition, feature `user` (handler → service → repository) |
+| Structure | `internal/app` composition, feature package with a public `Service` interface |
 | Logging | `log/slog` |
 
 ## Layout
@@ -18,7 +18,7 @@ Production-oriented Go HTTP API template (Chi, sqlc, pgx, OpenAPI).
 cmd/api/          # thin main → internal/app
 cmd/migrate/      # database migrations only (run before deploy / locally)
 internal/app/     # composition root (wire dependencies)
-internal/user/    # domain: handler, service, repository, types
+internal/user/    # sample feature: Service interface, handler and SQL at the edges
 internal/platform/# postgres, httpx, health, migrate helpers
 internal/transport/ # OpenAPI facade (delegates to features)
 integration/      # HTTP + DB tests (needs DATABASE_URL)
@@ -63,13 +63,13 @@ Migrations are **not** applied automatically when the API starts (matches k8s Jo
 ## Add a feature
 
 1. Extend `api/openapi.yaml` → `make generate`
-2. Add `internal/<feature>/` with `repository.go`, `service.go`, `handler.go`
+2. Add `internal/<feature>/` copying `internal/user`: `Service` interface, use-case inputs, handler and SQL repository at the edges
 3. Wire in `internal/app/app.go` and delegate from `internal/transport/api.go`
 
-The walkthrough is the **scaffold-feature** skill in `.cursor/skills/scaffold-feature/SKILL.md`.
+See `.cursor/skills/README.md` for agent skills (architecture, scaffold, grow, and task skills).
 
 ## AI agents
 
-- Start: `AGENTS.md`
-- New feature: skill **scaffold-feature**
+- Start: `AGENTS.md` and [.cursor/skills/README.md](.cursor/skills/README.md)
+- New feature: **scaffold-feature**; growth: **grow-feature**; layout: **codebase-architecture**
 - After a spec or SQL change: `make generate`, then `git diff --exit-code internal/store/db internal/transport/openapi`
