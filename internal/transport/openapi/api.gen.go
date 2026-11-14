@@ -42,6 +42,12 @@ type Problem struct {
 	Type     *string `json:"type,omitempty"`
 }
 
+// UpdateUserRequest defines model for UpdateUserRequest.
+type UpdateUserRequest struct {
+	Email *openapi_types.Email `json:"email,omitempty" validate:"omitempty,email,max=320"`
+	Name  *string              `json:"name,omitempty" validate:"omitempty,min=1,max=200"`
+}
+
 // User defines model for User.
 type User struct {
 	CreatedAt time.Time           `json:"created_at"`
@@ -80,6 +86,9 @@ type ListUsersParams struct {
 // CreateUserJSONRequestBody defines body for CreateUser for application/json ContentType.
 type CreateUserJSONRequestBody = CreateUserRequest
 
+// UpdateUserJSONRequestBody defines body for UpdateUser for application/json ContentType.
+type UpdateUserJSONRequestBody = UpdateUserRequest
+
 // ServerInterface represents all server handlers.
 type ServerInterface interface {
 	// GetHealth Liveness probe
@@ -94,9 +103,15 @@ type ServerInterface interface {
 	// CreateUser Create user
 	// (POST /v1/users)
 	CreateUser(w http.ResponseWriter, r *http.Request)
+	// DeleteUser Delete user
+	// (DELETE /v1/users/{userId})
+	DeleteUser(w http.ResponseWriter, r *http.Request, userId UserId)
 	// GetUser Get user by ID
 	// (GET /v1/users/{userId})
 	GetUser(w http.ResponseWriter, r *http.Request, userId UserId)
+	// UpdateUser Update user
+	// (PATCH /v1/users/{userId})
+	UpdateUser(w http.ResponseWriter, r *http.Request, userId UserId)
 }
 
 // Unimplemented server implementation that returns http.StatusNotImplemented for each endpoint.
@@ -127,9 +142,21 @@ func (_ Unimplemented) CreateUser(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusNotImplemented)
 }
 
+// DeleteUser Delete user
+// (DELETE /v1/users/{userId})
+func (_ Unimplemented) DeleteUser(w http.ResponseWriter, r *http.Request, userId UserId) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
 // GetUser Get user by ID
 // (GET /v1/users/{userId})
 func (_ Unimplemented) GetUser(w http.ResponseWriter, r *http.Request, userId UserId) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// UpdateUser Update user
+// (PATCH /v1/users/{userId})
+func (_ Unimplemented) UpdateUser(w http.ResponseWriter, r *http.Request, userId UserId) {
 	w.WriteHeader(http.StatusNotImplemented)
 }
 
@@ -230,6 +257,32 @@ func (siw *ServerInterfaceWrapper) CreateUser(w http.ResponseWriter, r *http.Req
 	handler.ServeHTTP(w, r)
 }
 
+// DeleteUser operation middleware
+func (siw *ServerInterfaceWrapper) DeleteUser(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "userId" -------------
+	var userId UserId
+
+	err = runtime.BindStyledParameterWithOptions("simple", "userId", chi.URLParam(r, "userId"), &userId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "uuid", ValueIsUnescaped: r.URL.RawPath == ""})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "userId", Err: err})
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.DeleteUser(w, r, userId)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
 // GetUser operation middleware
 func (siw *ServerInterfaceWrapper) GetUser(w http.ResponseWriter, r *http.Request) {
 
@@ -247,6 +300,32 @@ func (siw *ServerInterfaceWrapper) GetUser(w http.ResponseWriter, r *http.Reques
 
 	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		siw.Handler.GetUser(w, r, userId)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// UpdateUser operation middleware
+func (siw *ServerInterfaceWrapper) UpdateUser(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "userId" -------------
+	var userId UserId
+
+	err = runtime.BindStyledParameterWithOptions("simple", "userId", chi.URLParam(r, "userId"), &userId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "uuid", ValueIsUnescaped: r.URL.RawPath == ""})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "userId", Err: err})
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.UpdateUser(w, r, userId)
 	}))
 
 	for _, middleware := range siw.HandlerMiddlewares {
@@ -382,7 +461,13 @@ func HandlerWithOptions(si ServerInterface, options ChiServerOptions) http.Handl
 		r.Post(options.BaseURL+"/v1/users", wrapper.CreateUser)
 	})
 	r.Group(func(r chi.Router) {
+		r.Delete(options.BaseURL+"/v1/users/{userId}", wrapper.DeleteUser)
+	})
+	r.Group(func(r chi.Router) {
 		r.Get(options.BaseURL+"/v1/users/{userId}", wrapper.GetUser)
+	})
+	r.Group(func(r chi.Router) {
+		r.Patch(options.BaseURL+"/v1/users/{userId}", wrapper.UpdateUser)
 	})
 
 	return r
@@ -393,24 +478,25 @@ func HandlerWithOptions(si ServerInterface, options ChiServerOptions) http.Handl
 // const string: with thousands of chunks the chained `+` fold is several
 // times slower for the Go compiler than parsing a slice literal.
 var swaggerSpec = []string{
-	"xFfbbts4EP0VYnYfWpSJ5CS76Arow6YNsgGCRZC0T0FQjKWxza5EMuTIsBP43xek5ItsOb0gTfMSiSLn",
-	"zJwzF/oRclNZo0mzh+wRLDqsiMnFtyscU/ivNGRwX5ObgwSNFUEGNnyT4PMJVRg2FTTCumTIBhIqnKmq",
-	"riAbpPFPQqV0uyKB5zZYUJppTA4WCxmRbtTDk2ifvXrYA3mUdjG/ivfJk7soVmgWebIGq5uPEhzd18pR",
-	"ARm7mjaRR8ZVyGFvrQpYQXh2So9hESAceWu0p8jkKRbXdF+T5/CWG82k4yNaW6ocWRmdfPFGh7U1zO+O",
-	"RpDBb8lapaT56pMrZ4YlVQ1YQT53ygYzkMGFnmKpCuFayLCjPRasvneETIGCDZ+wKFQ4juWVM5Ycq+D5",
-	"CEtPEuzG0iNQharssNCsRA0uSY95AtnxUbpNi4TZgUGrDnJT0Jj0Ac3Y4QHjOJqNPiOHA0viZTQsK5y9",
-	"Oz5KYxyNRo+bUEet4Mv3wTMAV0q/G0TgozRdCrrMhttVwNGbuxWeGX6hnGEh4R/CkifXbQ7E0upw6Bm5",
-	"jk80w8qW8fR/PZnUxW2P9SEu82EHqiBu9dqyLUFpz6hz6qa0U7t+yA2Pt+tJAisuqRehWfia9a0oG3Py",
-	"qWhD9u6GmsfMLj4jdzCDuAesKuqLa38279JVfEPtr1N050Nti+90b4uYiNfJPbkZcwdhH2uXyvP+vFRM",
-	"VffhqR4UVVipDOgczsO7bQfHbqasG3nvZzaMXTGU5j9PoLeJd5iJ7srlWNqcF43NXToWsQBGpqmRzf55",
-	"fXbzUfx9dSF8jqORKQvx6v1EiTfC35e5eCPsePb6EFZpD+dGnJ6Jj1TZEpnCSZAwJecbc4PD9DAN0RlL",
-	"Gq2CDI4P08Pj6CdPIsvJJDaMh/A8ppgfQZY4GMKggnPipqfA1mgJ/em5ZspW1+oZLTfkpionobyobTNY",
-	"6qpCN4cMLtWUNHkvrDPDyHxssLfg556pgruwPXGExfzJOK8JCxUM/dpQgxtzwUZ4clMS7HA0UnnQ8Y/0",
-	"+CXG+AeypAvSuSIvao1TVCUOS9qifUVXw7t4VSDjED293ifBdJCEO47fK0LoEZ/iDtm5Et72x7LeksQr",
-	"40J+07544Vvc/USRd/pdD8thjyiVjw3yJE332Vw5mWxc5rYLwLOoW96WzDfvd6H3Gd/D9fo21t44yfOp",
-	"KebPRsLudW/rOhMut4sdFQbPqkIf841jxQ/xHo789RJFeBamrcAyti1BM+XZb8nexBGF79F9s+CSx+a3",
-	"xeKp9temwvfVXfuD5qdX094KGpla/7iUJy8h5b+Gl2529DunpmrFcC4uPvRJGLaHIdBq0TV7aXIsQULt",
-	"SshgwmyzJCnD4sR4zt6mb1NY3C3+HwA=",
+	"1Fdbb9s2FP4rxNkeWlSJ5CQbOgF9WC/oAgRDkLZPhVEcS8c2O4lkyCPDbuD/PpCSL7o4vczN2rzEosjz",
+	"HX7fuekOMl0arUixg/QODFosicmGp2uckf8vFaRwW5FdQQQKS4IUjH8XgcvmVKLflNMUq4IhHUVQ4lKW",
+	"VQnpKAl/EZRSNSsR8Mp4C1IxzcjCeh0FpDfy071oH5z8dADyLGljfhbvnSN7mW/RDPJ8B1bVLyOwdFtJ",
+	"SzmkbCvaR55qWyL7vZXMYQvh2Eo1g7WHsOSMVo4Ck88xv6Hbihz7p0wrJhV+ojGFzJClVvFHp5Vf28H8",
+	"amkKKfwS71SK67cuvrZ6UlBZg+XkMiuNNwMpXKoFFjIXtoH0O5pj3uoLS8jkKdjzCfNc+uNYXFttyLL0",
+	"nk+xcBSB2Vu6AypRFi0W6pWgwRWpGc8hPT9LurREsDzRaORJpnOakTqhJVs8YZwFs8FnZH9gQ3wUDEcl",
+	"Lp+dnyXhHrVGd/tQZ43gm+fREYBLqZ6NAvBZkmwE3UTD++2FgzfjLZ6efKSMYR3BX4QFz2+aGAip1eLQ",
+	"MXIVftESS1OE0/8MRFIbtzk2hLiJhx5UTtzo1bEdgVSOUWXUDmkr+35Eex538ykCllzQIEK98DnrnVvW",
+	"5qL7bvvO5D94DOtSMpWGVw8exDvkgSjuM+nI9oMmCzUi/4DcIskjnLAsaShCDnPaD7z8C6rojqfei8rk",
+	"X+leJ8QCXiuLo/07txDGB1i7ko4PZ7jXoP3jvmoeVNjJg9biyj+bpgX3c27XEgdfs2ZsiyEV/34Bg+2w",
+	"xUxwN9o0+P3OW9vs07EOpWSq62qz34luXr15K/68vhQuw+lUF7l49GIuxRPhbotMPBFmtnx8CtsCAq+1",
+	"eP5KvKXSFMjkT0IEC7KuNjc6TU4TfzttSKGRkML5aXJ6HvzkeWA5nofS+8n/nlGIDy9LaLG+5cNr4ro6",
+	"Q6dJ+xw5Vnfu1P+BJv2G7EJmJKQTlalbdFWWaFeQwpVckCLnhLF6EpgPWf4e3MoxlTD222NLmK/uvecN",
+	"YS69of/3qt6NlWAtHNkFCbY4ncrM6/hbcv4QA9FLMqRyUpkkJyqFC5QFTgrq0L6lq+ZdPMqRcYKOHh+S",
+	"YDGK/bToDorga8S7sCNqDdfvh++y2xKH4XsdfdG+MDqvx99R5F69G2DZ7xGFdKFAXiTJIZtbJ+O9sbib",
+	"AI5F1fC2Yb5+Hvvap90A17u5tpndyfFzna+ORkJ/cO4Mhv4zYd1TYXRUFYaYrx3Lv4l3f+SPh0jCV77b",
+	"CixC2RK0lI5dR/b6HkH4Ad33Ey6+q7/S1nXPKYipHxAvw3oTEF+Xfc0H4kBOXfS7XI3z7fRfPAT9f2sW",
+	"U12pvMN57fwhzqODveXItCbfPUlCeWoY+BmFek11SRSTlbh8OVwXkbN5X63dx9J/E+z4FbX/GfdFFfUB",
+	"gqUe/3+aSPmRqnjN3cEq7vf6ObAJwLb5K51hARFUtoAU5swmjePCL8614/Rp8jSB9Xj97wA=",
 }
 
 // decodeSpec returns the embedded OpenAPI spec as raw JSON bytes,

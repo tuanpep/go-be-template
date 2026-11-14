@@ -101,6 +101,73 @@ func (h *Handler) CreateUser(w http.ResponseWriter, r *http.Request) {
 	httpx.WriteJSON(w, http.StatusCreated, resp)
 }
 
+func (h *Handler) UpdateUser(w http.ResponseWriter, r *http.Request, userID openapi.UserId) {
+	id, err := ParseID(userID)
+	if err != nil {
+		httpx.BadRequest(w, "invalid user id")
+		return
+	}
+
+	var body openapi.UpdateUserRequest
+	dec := json.NewDecoder(r.Body)
+	dec.DisallowUnknownFields()
+	if err := dec.Decode(&body); err != nil {
+		httpx.BadRequest(w, "invalid JSON body")
+		return
+	}
+	if err := h.validate.Struct(body); err != nil {
+		httpx.BadRequest(w, httpx.ValidationDetail(err))
+		return
+	}
+
+	var email *string
+	if body.Email != nil {
+		v := string(*body.Email)
+		email = &v
+	}
+	updated, err := h.svc.Update(r.Context(), id, email, body.Name)
+	if err != nil {
+		if errors.Is(err, ErrInvalidInput) {
+			httpx.BadRequest(w, "invalid user input")
+			return
+		}
+		if errors.Is(err, ErrNotFound) {
+			httpx.NotFound(w, "user not found")
+			return
+		}
+		if errors.Is(err, ErrDuplicateEmail) {
+			httpx.Conflict(w, "email already registered")
+			return
+		}
+		h.internal(w, r, "update user", err)
+		return
+	}
+
+	resp, err := ToAPI(updated)
+	if err != nil {
+		h.internal(w, r, "map user", err)
+		return
+	}
+	httpx.WriteJSON(w, http.StatusOK, resp)
+}
+
+func (h *Handler) DeleteUser(w http.ResponseWriter, r *http.Request, userID openapi.UserId) {
+	id, err := ParseID(userID)
+	if err != nil {
+		httpx.BadRequest(w, "invalid user id")
+		return
+	}
+	if err := h.svc.Delete(r.Context(), id); err != nil {
+		if errors.Is(err, ErrNotFound) {
+			httpx.NotFound(w, "user not found")
+			return
+		}
+		h.internal(w, r, "delete user", err)
+		return
+	}
+	w.WriteHeader(http.StatusNoContent)
+}
+
 func (h *Handler) GetUser(w http.ResponseWriter, r *http.Request, userID openapi.UserId) {
 	id, err := ParseID(userID)
 	if err != nil {

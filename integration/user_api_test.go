@@ -194,6 +194,106 @@ func TestUserAPI(t *testing.T) {
 		}
 	})
 
+	t.Run("update name", func(t *testing.T) {
+		body, _ := json.Marshal(map[string]string{"name": "Updated User"})
+		req, err := http.NewRequest(http.MethodPatch, srv.URL+"/v1/users/"+userID, bytes.NewReader(body))
+		if err != nil {
+			t.Fatalf("request: %v", err)
+		}
+		req.Header.Set("Content-Type", "application/json")
+		resp, err := http.DefaultClient.Do(req)
+		if err != nil {
+			t.Fatalf("update: %v", err)
+		}
+		defer resp.Body.Close()
+		if resp.StatusCode != http.StatusOK {
+			b, _ := io.ReadAll(resp.Body)
+			t.Fatalf("update status %d body %s", resp.StatusCode, b)
+		}
+		var updated map[string]any
+		if err := json.NewDecoder(resp.Body).Decode(&updated); err != nil {
+			t.Fatalf("decode: %v", err)
+		}
+		if got, _ := updated["name"].(string); got != "Updated User" {
+			t.Fatalf("name: got %q", got)
+		}
+	})
+
+	t.Run("update duplicate email", func(t *testing.T) {
+		other := fmt.Sprintf("other-%s@example.com", uuid.NewString())
+		createBody, _ := json.Marshal(map[string]string{"email": other, "name": "Other"})
+		created, err := http.Post(srv.URL+"/v1/users", "application/json", bytes.NewReader(createBody))
+		if err != nil {
+			t.Fatalf("create: %v", err)
+		}
+		created.Body.Close()
+		if created.StatusCode != http.StatusCreated {
+			t.Fatalf("create status %d", created.StatusCode)
+		}
+
+		body, _ := json.Marshal(map[string]string{"email": other})
+		req, err := http.NewRequest(http.MethodPatch, srv.URL+"/v1/users/"+userID, bytes.NewReader(body))
+		if err != nil {
+			t.Fatalf("request: %v", err)
+		}
+		req.Header.Set("Content-Type", "application/json")
+		resp, err := http.DefaultClient.Do(req)
+		if err != nil {
+			t.Fatalf("update: %v", err)
+		}
+		defer resp.Body.Close()
+		if resp.StatusCode != http.StatusConflict {
+			t.Fatalf("update status %d", resp.StatusCode)
+		}
+	})
+
+	t.Run("update missing", func(t *testing.T) {
+		body := strings.NewReader(`{"name":"Missing"}`)
+		req, err := http.NewRequest(http.MethodPatch, srv.URL+"/v1/users/"+uuid.NewString(), body)
+		if err != nil {
+			t.Fatalf("request: %v", err)
+		}
+		req.Header.Set("Content-Type", "application/json")
+		resp, err := http.DefaultClient.Do(req)
+		if err != nil {
+			t.Fatalf("update: %v", err)
+		}
+		defer resp.Body.Close()
+		if resp.StatusCode != http.StatusNotFound {
+			t.Fatalf("update status %d", resp.StatusCode)
+		}
+	})
+
+	t.Run("delete", func(t *testing.T) {
+		req, err := http.NewRequest(http.MethodDelete, srv.URL+"/v1/users/"+userID, nil)
+		if err != nil {
+			t.Fatalf("request: %v", err)
+		}
+		resp, err := http.DefaultClient.Do(req)
+		if err != nil {
+			t.Fatalf("delete: %v", err)
+		}
+		defer resp.Body.Close()
+		if resp.StatusCode != http.StatusNoContent {
+			t.Fatalf("delete status %d", resp.StatusCode)
+		}
+	})
+
+	t.Run("delete missing", func(t *testing.T) {
+		req, err := http.NewRequest(http.MethodDelete, srv.URL+"/v1/users/"+userID, nil)
+		if err != nil {
+			t.Fatalf("request: %v", err)
+		}
+		resp, err := http.DefaultClient.Do(req)
+		if err != nil {
+			t.Fatalf("delete: %v", err)
+		}
+		defer resp.Body.Close()
+		if resp.StatusCode != http.StatusNotFound {
+			t.Fatalf("delete status %d", resp.StatusCode)
+		}
+	})
+
 	t.Run("list", func(t *testing.T) {
 		resp, err := http.Get(srv.URL + "/v1/users?page=1&page_size=10")
 		if err != nil {

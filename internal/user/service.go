@@ -33,6 +33,35 @@ func (s *Service) List(ctx context.Context, limit, offset int32) ([]User, int64,
 	return users, total, nil
 }
 
+func (s *Service) Update(ctx context.Context, id uuid.UUID, email, name *string) (User, error) {
+	if email == nil && name == nil {
+		return User{}, ErrInvalidInput
+	}
+	if email != nil {
+		v := strings.ToLower(strings.TrimSpace(*email))
+		if v == "" {
+			return User{}, ErrInvalidInput
+		}
+		email = &v
+	}
+	if name != nil {
+		v := strings.TrimSpace(*name)
+		if v == "" {
+			return User{}, ErrInvalidInput
+		}
+		name = &v
+	}
+	u, err := s.repo.Update(ctx, id, email, name)
+	if err != nil {
+		return User{}, err
+	}
+	return u, nil
+}
+
+func (s *Service) Delete(ctx context.Context, id uuid.UUID) error {
+	return s.repo.Delete(ctx, id)
+}
+
 func (s *Service) Create(ctx context.Context, email, name string) (User, error) {
 	email = strings.ToLower(strings.TrimSpace(email))
 	name = strings.TrimSpace(name)

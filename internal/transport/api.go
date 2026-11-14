@@ -58,3 +58,11 @@ func (a *API) CreateUser(w http.ResponseWriter, r *http.Request) {
 func (a *API) GetUser(w http.ResponseWriter, r *http.Request, userID openapi.UserId) {
 	a.users.GetUser(w, r, userID)
 }
+
+func (a *API) UpdateUser(w http.ResponseWriter, r *http.Request, userID openapi.UserId) {
+	a.users.UpdateUser(w, r, userID)
+}
+
+func (a *API) DeleteUser(w http.ResponseWriter, r *http.Request, userID openapi.UserId) {
+	a.users.DeleteUser(w, r, userID)
+}

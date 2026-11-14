@@ -106,6 +106,56 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/Problem"
+    patch:
+      operationId: updateUser
+      summary: Update user
+      tags: [users]
+      parameters:
+        - $ref: "#/components/parameters/UserId"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UpdateUserRequest"
+      responses:
+        "200":
+          description: Updated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/User"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "404":
+          description: Not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Problem"
+        "409":
+          description: Email already exists
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Problem"
+    delete:
+      operationId: deleteUser
+      summary: Delete user
+      tags: [users]
+      parameters:
+        - $ref: "#/components/parameters/UserId"
+      responses:
+        "204":
+          description: Deleted
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "404":
+          description: Not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Problem"
 
 components:
   parameters:
@@ -203,6 +253,23 @@ components:
           maxLength: 200
           x-oapi-codegen-extra-tags:
             validate: "required,min=1,max=200"
+
+    UpdateUserRequest:
+      type: object
+      additionalProperties: false
+      properties:
+        email:
+          type: string
+          format: email
+          maxLength: 320
+          x-oapi-codegen-extra-tags:
+            validate: "omitempty,email,max=320"
+        name:
+          type: string
+          minLength: 1
+          maxLength: 200
+          x-oapi-codegen-extra-tags:
+            validate: "omitempty,min=1,max=200"
 
     UserListResponse:
       type: object

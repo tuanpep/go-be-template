@@ -38,7 +38,7 @@ func New(ctx context.Context, cfg config.Config, log *slog.Logger) (*App, http.H
 	}
 
 	queries := db.New(pool)
-	repo := user.NewSQLRepository(queries)
+	repo := user.NewSQLRepository(pool, queries)
 	userSvc := user.NewService(repo)
 	userHTTP := user.NewHandler(log, userSvc)
 
