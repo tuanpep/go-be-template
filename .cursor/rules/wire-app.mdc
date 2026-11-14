@@ -1,9 +1,0 @@
----
-description: When editing the composition root or process entry, follow the wire-app skill.
-globs:
-  - "internal/app/**/*.go"
-  - "cmd/**/*.go"
-alwaysApply: false
----
-
-Follow the `wire-app` skill. Construct dependencies only in `internal/app`. `cmd/api` and `cmd/migrate` stay thin.

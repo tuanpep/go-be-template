@@ -1,9 +1,0 @@
----
-description: When creating or moving a package, follow the place-packages skill.
-globs:
-  - "internal/**/*.go"
-  - "cmd/**/*.go"
-alwaysApply: false
----
-
-Follow the `place-packages` skill. New behavior goes in `internal/<feature>/`. Import direction is `cmd` → `app` → transport and features → repository → `store/db`.
